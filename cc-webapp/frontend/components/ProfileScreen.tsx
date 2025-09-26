@@ -142,7 +142,10 @@ export function ProfileScreen({
 
       const siteId = env?.NEXT_PUBLIC_DEV_SITE_ID || 'test123';
       const password = env?.NEXT_PUBLIC_DEV_PASSWORD || 'password123';
-      const invite = env?.NEXT_PUBLIC_DEV_INVITE_CODE || '5858';
+      const invite = env?.NEXT_PUBLIC_DEV_INVITE_CODE;
+      if (!invite) {
+        console.warn('[ProfileScreen] NEXT_PUBLIC_DEV_INVITE_CODE 미설정: 개발 모드에서 초대코드 입력이 필요합니다.');
+      }
       // 1) 로그인 우선 시도
       let res: any;
       try {

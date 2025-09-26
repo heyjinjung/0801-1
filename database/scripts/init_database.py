@@ -20,7 +20,9 @@ DB_INIT_MODE = os.getenv('DB_INIT_MODE', 'development')
 CREATE_TEST_DATA = os.getenv('CREATE_TEST_DATA', 'true').lower() == 'true'
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
 TEST_PASSWORD = os.getenv('TEST_PASSWORD', 'test123')
-DEFAULT_INVITE_CODE = os.getenv('DEFAULT_INVITE_CODE', '5858')
+DEFAULT_INVITE_CODE = os.getenv('DEFAULT_INVITE_CODE')
+if not DEFAULT_INVITE_CODE:
+    raise SystemExit("DEFAULT_INVITE_CODE 미설정: 안전한 값을 환경변수로 지정하세요.")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

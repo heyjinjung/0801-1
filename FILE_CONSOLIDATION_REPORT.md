@@ -97,23 +97,31 @@
 ### Stray 파일 목록
 | Path | SHA256 | Revision | Down Revision | 중복 기능 여부 |
 |------|--------|----------|---------------|---------------|
-| backend/migrations/versions/20250816_add_receipt_signature.py | 34E6B4C927F3DC0B9F8B5463E03A8A71DC9771917F783E1230189D51049049A5 | 20250816_add_receipt_signature | f79d04ea1016 | 유사 목적 활성 리비전(20250820_add_shop_receipt_signature) 존재 |
-
-### 중복 / 충돌 판단
-- 기능: `shop_transactions.receipt_signature` 컬럼 및 인덱스 추가.
-- 활성 체인에 더 최신/통합된 `20250820_add_shop_receipt_signature.py` 존재 → stray 유지 시 혼란.
 
 ### 권장 조치
+## 2025-09-26 업데이트
+- 삭제 완료: `cc-webapp/backend/migrations/versions/20250816_add_receipt_signature.py` (Alembic 체인 외 stray). 디렉토리(`backend/migrations`)는 빈 상태 유지 또는 후속 단계에서 제거 예정.
+- 근거: Alembic 표준 경로는 `cc-webapp/backend/alembic/versions` 단일 유지. heads 단일 정책과 충돌 없음.
+
 1. 본 보고서 커밋 후 `backend/migrations/` 디렉토리 삭제 (git history 보존).
 2. CI 검사 추가: 비허용 마이그레이션 디렉토리(`backend/migrations`) 존재 시 실패.
 3. `개선안2.md` 에 제거 및 SHA256 기록 유지.
 
 ### 삭제 체크리스트
-- [ ] 보고서 병합
-- [ ] Alembic heads 재확인 (단일 head 유지)
-- [ ] `git rm cc-webapp/backend/migrations` 후 `alembic upgrade head` 재실행 PASS
+- [x] 보고서 병합
+- [x] Alembic heads 재확인 (단일 head 유지) — 직전 세션 기준
+- [x] `cc-webapp/backend/migrations/versions/20250816_add_receipt_signature.py` 파일 삭제 (디렉토리는 추후 clean 단계에서 제거)
+- [ ] 컨테이너 내부 `alembic upgrade head` 재실행 PASS 확인 (운영 시간 외 수행)
 - [ ] CI drift guard(heads=1 + schema_drift_guard) 파이프라인 추가
 
-> NOTE: 현재 자동 삭제 도구 제한으로 디렉토리 제거는 수동 수행 필요. PowerShell 예시:
-> `git rm -r cc-webapp/backend/migrations; git commit -m "chore: remove stray migrations dir"`
+> NOTE: 상위 디렉토리는 빈 상태 확인 후 정리 예정. 현재는 stray 파일만 제거 완료.
+
+## 2025-09-26 Alembic 리비전 추가 기록 (Auth 스키마 정합화)
+
+- 추가: `backend/alembic/versions/20250926_auth_schema_consolidation.py`
+   - 목적: 수동 DDL 핫픽스를 Alembic으로 공식화 (user_sessions 컬럼/인덱스, token_blacklist 생성/인덱스, refresh_tokens 보강, invite_codes uses→used_count 정규화)
+   - 특성: 방어적/idemponent. 기존 인덱스 중복 방지(열 집합 확인) 가드 포함.
+- 추가: `backend/alembic/versions/20250926_merge_heads_auth_invite.py`
+   - 목적: 병렬 head(`20250926_auth_schema_consolidation`, `c36e6cbf64d2`) 병합. 스키마 변경 없음.
+- 검증: 컨테이너 내부 `alembic heads` 단일 head로 수렴 확인, `alembic upgrade head` 적용 로그 확인.
 

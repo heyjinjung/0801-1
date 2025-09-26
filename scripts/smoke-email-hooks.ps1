@@ -18,7 +18,8 @@ catch { Write-Fail ("Health check failed: " + $_.Exception.Message); exit 1 }
 # Signup a fresh user
 $suffix = Get-Random -Minimum 1000 -Maximum 999999
 $siteId = "emailhook_$suffix"
-$signupBody = @{ site_id=$siteId; nickname=$siteId; phone_number='01000000000'; invite_code='5858'; password='pass1234' }
+$InviteCode = if ($env:INVITE_CODE) { $env:INVITE_CODE } elseif ($env:UNLIMITED_INVITE_CODE) { $env:UNLIMITED_INVITE_CODE } else { throw "ENV INVITE_CODE 또는 UNLIMITED_INVITE_CODE가 필요합니다." }
+$signupBody = @{ site_id=$siteId; nickname=$siteId; phone_number='01000000000'; invite_code=$InviteCode; password='pass1234' }
 
 try {
   Write-Info ("Sign up user: " + $siteId)

@@ -25,7 +25,8 @@ try {
   $randAdmin = Get-Random -Minimum 1000 -Maximum 999999
   $adminSite = "$AdminSiteId$randAdmin"
   $phoneAdmin = "010" + ('{0:d8}' -f (Get-Random -Minimum 0 -Maximum 99999999))
-  $signupAdmin = Invoke-Api POST "$BaseUrl/api/auth/signup" @{ site_id=$adminSite; nickname=$adminSite; password=$AdminPassword; invite_code="5858"; phone_number=$phoneAdmin }
+  $InviteCode = if ($env:INVITE_CODE) { $env:INVITE_CODE } elseif ($env:UNLIMITED_INVITE_CODE) { $env:UNLIMITED_INVITE_CODE } else { throw "ENV INVITE_CODE 또는 UNLIMITED_INVITE_CODE가 필요합니다." }
+  $signupAdmin = Invoke-Api POST "$BaseUrl/api/auth/signup" @{ site_id=$adminSite; nickname=$adminSite; password=$AdminPassword; invite_code=$InviteCode; phone_number=$phoneAdmin }
   $elevSiteId = $signupAdmin.user.site_id
   if (-not $elevSiteId) { $elevSiteId = $adminSite }
   # Elevate to admin (dev helper)
@@ -47,7 +48,8 @@ Write-Host "[4/6] Create a normal user (target)" -ForegroundColor Cyan
 $rand = Get-Random -Minimum 1000 -Maximum 999999
 $site = "emailtrg_$rand"
 $phoneUser = "010" + ('{0:d8}' -f (Get-Random -Minimum 0 -Maximum 99999999))
-$signup = Invoke-Api POST "$BaseUrl/api/auth/signup" @{ site_id=$site; nickname=$site; password="passw0rd!"; invite_code="5858"; phone_number=$phoneUser }
+$InviteCode = if ($env:INVITE_CODE) { $env:INVITE_CODE } elseif ($env:UNLIMITED_INVITE_CODE) { $env:UNLIMITED_INVITE_CODE } else { throw "ENV INVITE_CODE 또는 UNLIMITED_INVITE_CODE가 필요합니다." }
+$signup = Invoke-Api POST "$BaseUrl/api/auth/signup" @{ site_id=$site; nickname=$site; password="passw0rd!"; invite_code=$InviteCode; phone_number=$phoneUser }
 $userId = $signup.user.id
 Write-Host "Created user id=$userId site=$site"
 # Optionally set a segment directly if API exists; if not, continue without.
