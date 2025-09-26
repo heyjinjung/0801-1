@@ -5,7 +5,7 @@
  */
 import { motion } from "framer-motion";
 import React, { useEffect, useState } from "react";
-import { generateClientPoints, generateStablePoints, ParticlePoint } from "../lib/particles";
+import { generateStablePoints, getPooledPoints, releasePoints, initPointPool, ParticlePoint } from "../lib/particles";
 
 export interface ParticleFieldProps {
   count?: number;
@@ -31,11 +31,19 @@ export const ParticleField: React.FC<ParticleFieldProps> = ({
   const finalCount = count ?? VARIANT_DEFAULT_COUNT[variant] ?? 20;
   // 첫 SSR 대비: 초기엔 stable seed (dynamic import 이므로 사실상 클라에서만 실행되지만 방어적)
   const [points, setPoints] = useState<ParticlePoint[]>(() => generateStablePoints(finalCount, stableSeed));
+  // 현재 풀에서 획득한 포인트(해제 용도)
+  const [leased, setLeased] = useState<ParticlePoint[] | null>(null);
 
   useEffect(() => {
-    // 마운트 후 진짜 랜덤 위치 재생성 (시각적 다양성)
-    setPoints(generateClientPoints(finalCount));
-  }, [finalCount]);
+    // 풀 초기화(최초 1회 느슨한 호출)
+    initPointPool([finalCount, Math.max(10, finalCount * 2)]);
+    const pooled = getPooledPoints(finalCount, stableSeed + 17);
+    setLeased(pooled);
+    setPoints(pooled);
+    return () => {
+      if (pooled) releasePoints(pooled);
+    };
+  }, [finalCount, stableSeed]);
 
   return (
     <div className={className} aria-hidden>

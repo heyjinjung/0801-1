@@ -3,6 +3,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
+
+// NOTE: dynamic import 즉시 실행 패턴 → 컴포넌트 선언 패턴으로 전환 (Hydration mismatch 예방)
+const DynamicParticleField = dynamic(() => import('./ParticleField').then(m => m.ParticleField), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 pointer-events-none" aria-hidden />
+});
 import { apiLogTry, apiLogSuccess, apiLogFail } from '../utils/apiLogger';
 import { 
   User, 
@@ -80,8 +86,8 @@ export function LoginScreen({
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-black to-primary/10 flex items-center justify-center p-4 relative overflow-hidden">
   {/* ParticleField: SSR 비결정 랜덤 제거, 클라이언트 전용 */}
-  {/** dynamic import 로 SSR 시 제외되어 hydration mismatch 방지 */}
-  {dynamic(() => import('./ParticleField').then(m => m.ParticleField), { ssr: false })({ variant: 'login', count: 18 })}
+  {/** dynamic import 컴포넌트를 JSX로 사용 (구: 즉시 호출) → SSR/클라 트리 구조 안정 */}
+  <DynamicParticleField variant="login" count={18} />
 
       {/* Main Login Card */}
       <motion.div

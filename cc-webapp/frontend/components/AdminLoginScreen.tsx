@@ -3,6 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
+// NOTE: LoginScreen과 동일하게 즉시 호출 제거 → JSX 컴포넌트화
+const DynamicParticleField = dynamic(() => import('./ParticleField').then(m => m.ParticleField), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 pointer-events-none" aria-hidden />
+});
 import { apiLogTry, apiLogSuccess, apiLogFail } from '../utils/apiLogger';
 import { 
   Shield, 
@@ -113,7 +118,7 @@ export function AdminLoginScreen({
         backgroundSize: '20px 20px'
       }} />
       {/* ParticleField: 보안 테마 아이콘 파티클을 클라이언트 전용으로 렌더 */}
-      {dynamic(() => import('./ParticleField').then(m => m.ParticleField), { ssr: false })({ variant: 'admin', count: 12 })}
+  <DynamicParticleField variant="admin" count={12} />
 
       {/* Security Warning Banner */}
       <motion.div

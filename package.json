@@ -6,7 +6,8 @@
     "lint": "cd cc-webapp/frontend && npm run lint",
     "type-check": "cd cc-webapp/frontend && npm run type-check",
     "storybook": "cd cc-webapp/frontend && npm run storybook",
-    "build-storybook": "cd cc-webapp/frontend && npm run build-storybook"
+  "build-storybook": "cd cc-webapp/frontend && npm run build-storybook",
+  "check:ssr-random": "cd cc-webapp/frontend && npm run check:ssr-random"
   },
   "dependencies": {
     "@radix-ui/react": "^2.1.6",
