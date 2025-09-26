@@ -2,6 +2,7 @@ import { User, GameItem } from '../../../types';
 import { GachaItem, GachaBanner } from '../../../types/gacha';
 export type { HeartParticle } from '../../../types/gacha';
 import { ANIMATION_DURATIONS, SEXY_EMOJIS, GACHA_ITEMS } from './constants';
+import { createStableRng } from '@/lib/stableRandom';
 
 export interface Particle {
   id: string;
@@ -19,7 +20,10 @@ export interface Particle {
  * @returns 랜덤 ID 문자열
  */
 export function generateUniqueId(prefix: string = ''): string {
-  return `${prefix}_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
+  const rng = createStableRng(Date.now() ^ (prefix.length << 16));
+  // 7 chars base36 slice
+  const randStr = Math.floor(rng.next() * 36 ** 7).toString(36).padStart(7, '0');
+  return `${prefix}_${randStr}_${Date.now()}`;
 }
 
 /**
@@ -28,13 +32,14 @@ export function generateUniqueId(prefix: string = ''): string {
  * @returns 반짝임 효과 배열
  */
 export function generateSparkles(count = 5) {
+  const rng = createStableRng(Date.now() ^ count);
   return Array.from({ length: count }).map((_, index) => ({
     id: `sparkle-${index}`,
-    size: Math.random() * 10 + 5, // 5-15px
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    animationDelay: `${Math.random() * 2}s`,
-    emoji: SEXY_EMOJIS[Math.floor(Math.random() * SEXY_EMOJIS.length)],
+    size: rng.next() * 10 + 5,
+    left: `${rng.next() * 100}%`,
+    top: `${rng.next() * 100}%`,
+    animationDelay: `${rng.next() * 2}s`,
+    emoji: SEXY_EMOJIS[Math.floor(rng.next() * SEXY_EMOJIS.length)],
   }));
 }
 
@@ -56,23 +61,25 @@ export function getAnimationDelay(index: number, baseDelay = 0, stagger = 0.1) {
  * @returns 파티클 효과 배열
  */
 export function generateParticles(rarity: string, count = 20) {
+  const rng = createStableRng((Date.now() ^ rarity.length) >>> 0);
   return Array.from({ length: count }).map((_, index) => ({
     id: `particle-${index}`,
-    size: Math.random() * 15 + 5,
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    animationDuration: `${Math.random() * 2 + 1}s`,
-    animationDelay: `${Math.random() * 0.5}s`,
+    size: rng.next() * 15 + 5,
+    left: `${rng.next() * 100}%`,
+    top: `${rng.next() * 100}%`,
+    animationDuration: `${rng.next() * 2 + 1}s`,
+    animationDelay: `${rng.next() * 0.5}s`,
     rarity,
   }));
 }
 
 // Generate floating heart particles
 export const generateHeartParticles = (): any[] => {
+  const rng = createStableRng(Date.now() ^ 0x777);
   return Array.from({ length: 3 }, (_, i) => ({
     id: generateUniqueId('heart'),
-    x: Math.random() * 100,
-    y: Math.random() * 100
+    x: rng.next() * 100,
+    y: rng.next() * 100
   }));
 };
 
@@ -98,7 +105,10 @@ export const getRandomItem = (banner: GachaBanner, user: User): GachaItem => {
   }
 
   const totalRate = adjustedItems.reduce((sum, item) => sum + item.rate, 0);
-  let random = Math.random() * totalRate;
+  // 가벼운 RNG: Date.now + banner id length + user id 해시 일부
+  const seedBase = (Date.now() ^ (banner.id.length << 8) ^ (user?.id || 0)) >>> 0;
+  const rng = createStableRng(seedBase);
+  let random = rng.next() * totalRate;
   
   for (const item of adjustedItems) {
     random -= item.rate;

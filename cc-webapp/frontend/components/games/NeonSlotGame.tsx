@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import useFeedback from '../../hooks/useFeedback';
 import { api } from '@/lib/unifiedApi';
 import { useWithReconcile } from '@/lib/sync';
@@ -32,6 +32,7 @@ import { User } from '../../types';
 import { Button } from '../ui/button';
 import { Slider } from '../ui/slider';
 import { useGameConfig } from '../../hooks/useGameConfig';
+import { createStableRng } from '@/lib/stableRandom';
 
 interface NeonSlotGameProps {
   user: User;
@@ -170,13 +171,23 @@ export function NeonSlotGame({ user, onBack, onUpdateUser, onAddNotification }: 
     }
   }, [autoSpinCount, isSpinning, isAutoSpinning]);
 
-  // Generate enhanced particles
+  // ✅ 결정적 RNG (SSR 안전) – 렌더 간 유지되는 seed/index
+  const rngSeedRef = useRef<number>(() => Date.now()).current as unknown as number; // 초기 seed는 최초 클라이언트 마운트 시만 의미
+  const rngCounterRef = useRef(0);
+  const nextRng = () => {
+    // counter를 seed에 합쳐 새로운 deterministic LCG 인스턴스 생성
+    const seed = (rngSeedRef + rngCounterRef.current++) >>> 0;
+    return createStableRng(seed);
+  };
+
+  // Generate enhanced particles (Math.random 제거)
   const generateParticles = useCallback((type: string = 'win') => {
     const particleCount = type === 'jackpot' ? 30 : 15;
+    const rng = nextRng();
     const newParticles = Array.from({ length: particleCount }, (_, i) => ({
       id: Date.now() + i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
+      x: rng.next() * 100,
+      y: rng.next() * 100,
       type,
     }));
     setParticles(newParticles);
@@ -185,9 +196,10 @@ export function NeonSlotGame({ user, onBack, onUpdateUser, onAddNotification }: 
 
   // Generate coin drop effect
   const generateCoinDrops = useCallback(() => {
+    const rng = nextRng();
     const newCoins = Array.from({ length: 8 }, (_, i) => ({
       id: Date.now() + i,
-      x: 20 + i * 10 + Math.random() * 5,
+      x: 20 + i * 10 + rng.next() * 5,
       delay: i * 100,
     }));
     setCoinDrops(newCoins);
@@ -196,31 +208,22 @@ export function NeonSlotGame({ user, onBack, onUpdateUser, onAddNotification }: 
 
   // Generate spinning reel symbols (for animation)
   const generateSpinningReels = (): SlotSymbol[][] => {
+    const rng = nextRng();
     return Array.from({ length: 3 }, () =>
-      Array.from(
-        { length: 20 },
-        () => SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]
-      )
+      Array.from({ length: 20 }, () => SLOT_SYMBOLS[rng.int(SLOT_SYMBOLS.length)])
     );
   };
 
   // Generate random symbol weighted by rarity
   const getRandomSymbol = (): SlotSymbol => {
-    const weights = {
-      common: 50,
-      rare: 30,
-      epic: 15,
-      legendary: 5,
-    };
-
-    const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-    let random = Math.random() * totalWeight;
-
+    const weights = { common: 50, rare: 30, epic: 15, legendary: 5 } as const;
+    const totalWeight = 50 + 30 + 15 + 5;
+    const rng = nextRng();
+    let value = rng.next() * totalWeight;
     for (const symbol of SLOT_SYMBOLS) {
-      random -= weights[symbol.rarity];
-      if (random <= 0) return symbol;
+      value -= weights[symbol.rarity];
+      if (value <= 0) return symbol;
     }
-
     return SLOT_SYMBOLS[0];
   };
 

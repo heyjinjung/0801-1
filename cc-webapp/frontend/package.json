@@ -5,7 +5,7 @@
 	"scripts": {
 		"predev": "node scripts/gen-build-id.mjs",
 		"dev": "next dev",
-		"check:ssr-random": "python ../../scripts/check_hydration_random.py",
+		"check:ssr-random": "node scripts/check_hydration_random.mjs",
 		"prebuild": "node scripts/gen-build-id.mjs && npm run check:ssr-random",
 		"build": "next build",
 		"start": "next start",

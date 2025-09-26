@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createStableRng } from '@/lib/stableRandom';
 declare global {
   interface Window {
     _crashGameTarget?: number;
@@ -203,13 +204,9 @@ export function NeonCrashGame({
   };
 
   // 서버/클라이언트 사이드 렌더링을 위한 안전한 난수 생성기
+  const rngRef = useRef(createStableRng(Date.now() ^ 0xC4A5));
   const getRandomValue = useCallback(() => {
-    // 클라이언트 사이드에서만 Math.random() 사용
-    if (typeof window !== 'undefined') {
-      return Math.random();
-    }
-    // 서버 사이드에서는 고정된 값 반환
-    return 0.5;
+    return rngRef.current.next();
   }, []);
 
   // 그래프 그리기 함수
