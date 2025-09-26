@@ -121,12 +121,13 @@ def run_migrations_online() -> None:
         # 테스트/CI에서 락 대기 행업 방지: 짧은 lock_timeout 적용 (PostgreSQL 한정)
         try:
             if connection.dialect.name == "postgresql":
-                # 5초 락 타임아웃
+                # 락 타임아웃은 짧게 유지하되,
+                # 마이그레이션 롤백을 유발하던 statement_timeout(5s)을 해제(0)하여 장시간 DDL 허용
                 connection.exec_driver_sql("SET lock_timeout TO '5s'")
-                # 5초 statement 타임아웃 (긴 인덱스 생성 등 방지)
-                connection.exec_driver_sql("SET statement_timeout TO '5000ms'")
-        except Exception:
-            pass
+                connection.exec_driver_sql("SET statement_timeout TO '0'")
+                print("[alembic] lock_timeout=5s, statement_timeout=0 적용")
+        except Exception as e:
+            print(f"[alembic] timeout 설정 실패: {e}")
 
         context.configure(
             connection=connection, target_metadata=target_metadata

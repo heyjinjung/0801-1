@@ -14,10 +14,10 @@ function Start-Docker {
     # Run commands based on whether tools are included
     if ($Tools) {
         Write-Host "Starting with development tools..." -ForegroundColor Cyan
-        docker-compose -f docker-compose.simple.yml up -d backend frontend postgres pgadmin
+    docker-compose -f docker-compose.yml up -d backend frontend postgres pgadmin
         Write-Host "All services and development tools started!" -ForegroundColor Green
     } else {
-        docker-compose -f docker-compose.simple.yml up -d backend frontend postgres
+    docker-compose -f docker-compose.yml up -d backend frontend postgres
         Write-Host "Basic services started! (excluding development tools)" -ForegroundColor Green
     }
     
@@ -36,22 +36,22 @@ function Start-Docker {
 
 function Stop-Docker {
     Write-Host "Stopping Casino Club F2P services..." -ForegroundColor Cyan
-    docker-compose -f docker-compose.simple.yml down
+    docker-compose -f docker-compose.yml down
     Write-Host "All services stopped!" -ForegroundColor Green
 }
 
 function Show-Status {
     Write-Host "Casino Club F2P service status:" -ForegroundColor Cyan
-    docker-compose -f docker-compose.simple.yml ps
+    docker-compose -f docker-compose.yml ps
 }
 
 function Show-Logs {
     if ($Service) {
         Write-Host "Showing logs for $Service service..." -ForegroundColor Cyan
-        docker-compose -f docker-compose.simple.yml logs --tail=100 -f $Service
+    docker-compose -f docker-compose.yml logs --tail=100 -f $Service
     } else {
         Write-Host "Showing logs for all services..." -ForegroundColor Cyan
-        docker-compose -f docker-compose.simple.yml logs --tail=50 -f
+    docker-compose -f docker-compose.yml logs --tail=50 -f
     }
 }
 
@@ -63,9 +63,9 @@ function Enter-Shell {
     
     Write-Host "Connecting to shell for $Service service..." -ForegroundColor Cyan
     if ($Service -eq "backend") {
-        docker-compose -f docker-compose.simple.yml exec backend /bin/bash
+    docker-compose -f docker-compose.yml exec backend /bin/bash
     } elseif ($Service -eq "frontend") {
-        docker-compose -f docker-compose.simple.yml exec frontend /bin/bash
+    docker-compose -f docker-compose.yml exec frontend /bin/bash
     } else {
         Write-Host "Unsupported service: $Service" -ForegroundColor Red
         exit 1
@@ -74,7 +74,7 @@ function Enter-Shell {
 
 function Initialize-Database {
     Write-Host "Initializing database..." -ForegroundColor Cyan
-    docker-compose -f docker-compose.simple.yml exec backend python init_simple_db.py
+    docker-compose -f docker-compose.yml exec backend python init_simple_db.py
     Write-Host "Database initialization complete!" -ForegroundColor Green
 }
 
