@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { createStableRng } from '@/lib/stableRandom';
 import { User } from '../types';
 import { 
   ensureUserCompatibility, 
@@ -33,6 +34,13 @@ export function useUserManager() {
   ): User => {
     const isAdmin = isAdminAccount(nickname, password);
     
+    // 결정적 seed: 닉네임 해시 ^ (signup flag) ^ (inviteCode 길이)
+    const nickHash = Array.from(nickname).reduce((acc, ch) => ((acc << 5) - acc + ch.charCodeAt(0)) | 0, 0) >>> 0;
+    const seed = (nickHash ^ (isSignup ? 0x9e3779b1 : 0x517cc1b7) ^ ((inviteCode?.length || 0) << 12)) >>> 0;
+    const rng = createStableRng(seed);
+
+    const randInt = (max: number) => (max <= 0 ? 0 : Math.floor(rng.next() * max));
+
     return {
       id: Date.now().toString(),
       nickname,
@@ -40,24 +48,24 @@ export function useUserManager() {
         ? GAME_DEFAULTS.ADMIN_GOLD 
         : isSignup 
           ? (inviteCode ? GAME_DEFAULTS.INVITE_BONUS : GAME_DEFAULTS.SIGNUP_BONUS)
-          : GAME_DEFAULTS.BASIC_GOLD + Math.floor(Math.random() * GAME_DEFAULTS.RANDOM_GOLD_RANGE),
-      level: isAdmin ? GAME_DEFAULTS.ADMIN_LEVEL : Math.floor(Math.random() * GAME_DEFAULTS.RANDOM_LEVEL_RANGE) + 1,
-      experience: Math.floor(Math.random() * GAME_DEFAULTS.RANDOM_EXP_RANGE),
+          : GAME_DEFAULTS.BASIC_GOLD + randInt(GAME_DEFAULTS.RANDOM_GOLD_RANGE),
+      level: isAdmin ? GAME_DEFAULTS.ADMIN_LEVEL : randInt(GAME_DEFAULTS.RANDOM_LEVEL_RANGE) + 1,
+      experience: randInt(GAME_DEFAULTS.RANDOM_EXP_RANGE),
       maxExperience: GAME_DEFAULTS.BASE_MAX_EXP,
-      dailyStreak: isSignup ? 1 : Math.floor(Math.random() * GAME_DEFAULTS.RANDOM_STREAK_RANGE),
+      dailyStreak: isSignup ? 1 : randInt(GAME_DEFAULTS.RANDOM_STREAK_RANGE),
       achievements: isSignup ? ['newcomer'] : ['first_login', 'level_5'],
       inventory: [isSignup ? DEFAULT_ITEMS.NEWCOMER : DEFAULT_ITEMS.BEGINNER],
       stats: {
-        gamesPlayed: isSignup ? 0 : Math.floor(Math.random() * GAME_DEFAULTS.RANDOM_GAMES_RANGE),
-        gamesWon: isSignup ? 0 : Math.floor(Math.random() * GAME_DEFAULTS.RANDOM_WINS_RANGE),
-        highestScore: isSignup ? 0 : Math.floor(Math.random() * GAME_DEFAULTS.RANDOM_SCORE_RANGE),
-        totalEarnings: isSignup ? 0 : Math.floor(Math.random() * GAME_DEFAULTS.RANDOM_EARNINGS_RANGE),
-        winStreak: isSignup ? 0 : Math.floor(Math.random() * GAME_DEFAULTS.RANDOM_WIN_STREAK_RANGE),
+        gamesPlayed: isSignup ? 0 : randInt(GAME_DEFAULTS.RANDOM_GAMES_RANGE),
+        gamesWon: isSignup ? 0 : randInt(GAME_DEFAULTS.RANDOM_WINS_RANGE),
+        highestScore: isSignup ? 0 : randInt(GAME_DEFAULTS.RANDOM_SCORE_RANGE),
+        totalEarnings: isSignup ? 0 : randInt(GAME_DEFAULTS.RANDOM_EARNINGS_RANGE),
+        winStreak: isSignup ? 0 : randInt(GAME_DEFAULTS.RANDOM_WIN_STREAK_RANGE),
         favoriteGame: isSignup ? '' : 'slot'
       },
       gameStats: createDefaultGameStats(),
       lastLogin: new Date(),
-      totalPlayTime: isSignup ? 0 : Math.floor(Math.random() * GAME_DEFAULTS.RANDOM_PLAYTIME_RANGE) * 3600,
+      totalPlayTime: isSignup ? 0 : randInt(GAME_DEFAULTS.RANDOM_PLAYTIME_RANGE) * 3600,
       isAdmin,
       registrationDate: new Date(),
       lastActivity: new Date(),

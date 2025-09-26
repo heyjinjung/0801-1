@@ -13,7 +13,11 @@ import process from 'process';
 const ALLOW_TAG = '@allow-ssr-random';
 const CLIENT_DIRECTIVE = 'use client';
 const TARGET_EXT = new Set(['.tsx', '.ts', '.jsx']);
-const EXCLUDE_DIRS = new Set(['node_modules', '.next', 'dist', 'build', 'coverage', 'scripts/__pycache__']);
+const EXCLUDE_DIRS = new Set([
+  'node_modules', '.next', 'dist', 'build', 'coverage', 'scripts/__pycache__',
+  // 테스트/스토리북/예시 디렉토리 제외 (SSR 안전성 영향 없음)
+  '__tests__', 'tests', 'e2e', 'storybook'
+]);
 const pattern = /Math\.random\(/;
 
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..'); // frontend root
@@ -28,10 +32,12 @@ async function collectFiles(dir) {
         if (EXCLUDE_DIRS.has(ent.name)) continue;
         await walk(full);
       } else {
-        const ext = path.extname(ent.name);
+  const ext = path.extname(ent.name);
         if (!TARGET_EXT.has(ext)) continue;
         const parts = full.split(path.sep);
         if (parts.some(p => EXCLUDE_DIRS.has(p))) continue;
+  // 단일 파일명 패턴 제외: *.spec.ts(x) / *.test.ts(x)
+  if (/\.(spec|test)\.[jt]sx?$/.test(ent.name)) continue;
         out.push(full);
       }
     }

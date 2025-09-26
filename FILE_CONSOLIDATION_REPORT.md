@@ -86,3 +86,34 @@
 3. **프론트엔드 연동 검증**
    - 통합된 인증 시스템과 프론트엔드 연동 검증
    - 오류 상황 테스트
+
+---
+
+## 2025-09-26 Stray Alembic Migration 디렉토리 분석
+
+### 개요
+표준 경로 `cc-webapp/backend/alembic/versions/` 외에 레거시 경로 `cc-webapp/backend/migrations/versions/` 내 단일 파일 존재를 확인. Alembic 설정(`alembic.ini` `script_location = alembic`)에 의해 실행 체인에 포함되지 않는 stray.
+
+### Stray 파일 목록
+| Path | SHA256 | Revision | Down Revision | 중복 기능 여부 |
+|------|--------|----------|---------------|---------------|
+| backend/migrations/versions/20250816_add_receipt_signature.py | 34E6B4C927F3DC0B9F8B5463E03A8A71DC9771917F783E1230189D51049049A5 | 20250816_add_receipt_signature | f79d04ea1016 | 유사 목적 활성 리비전(20250820_add_shop_receipt_signature) 존재 |
+
+### 중복 / 충돌 판단
+- 기능: `shop_transactions.receipt_signature` 컬럼 및 인덱스 추가.
+- 활성 체인에 더 최신/통합된 `20250820_add_shop_receipt_signature.py` 존재 → stray 유지 시 혼란.
+
+### 권장 조치
+1. 본 보고서 커밋 후 `backend/migrations/` 디렉토리 삭제 (git history 보존).
+2. CI 검사 추가: 비허용 마이그레이션 디렉토리(`backend/migrations`) 존재 시 실패.
+3. `개선안2.md` 에 제거 및 SHA256 기록 유지.
+
+### 삭제 체크리스트
+- [ ] 보고서 병합
+- [ ] Alembic heads 재확인 (단일 head 유지)
+- [ ] `git rm cc-webapp/backend/migrations` 후 `alembic upgrade head` 재실행 PASS
+- [ ] CI drift guard(heads=1 + schema_drift_guard) 파이프라인 추가
+
+> NOTE: 현재 자동 삭제 도구 제한으로 디렉토리 제거는 수동 수행 필요. PowerShell 예시:
+> `git rm -r cc-webapp/backend/migrations; git commit -m "chore: remove stray migrations dir"`
+

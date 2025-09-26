@@ -1,0 +1,33 @@
+name: DB Drift Guard
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  drift-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps (minimal)
+        run: |
+          pip install alembic SQLAlchemy psycopg2-binary python-dotenv
+      - name: Prepare env (placeholder DB URL)
+        run: |
+          echo "POSTGRES_SERVER=localhost" >> $GITHUB_ENV
+          echo "POSTGRES_USER=cc_user" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=cc_password" >> $GITHUB_ENV
+          echo "POSTGRES_DB=cc_webapp" >> $GITHUB_ENV
+      - name: Single head check
+        working-directory: cc-webapp/backend
+        run: |
+          python scripts/alembic_head_guard.py || exit 1
+      - name: Report
+        run: echo "Drift guard completed"

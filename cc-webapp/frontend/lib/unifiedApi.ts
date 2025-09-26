@@ -77,14 +77,42 @@ if (__logGateEnabled()) {
   console.log(`[unifiedApi] 초기화 - ctx=${__ctx} build=${__build} origin=${ORIGIN}`);
 }
 
-// 간단 UUIDv4 (라이브러리 무의존) - 멱등키 자동 주입용
-function __uuidv4() {
-  // eslint-disable-next-line no-bitwise
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+// 안전/결정적 UUIDv4 생성 (SSR Math.random 제거)
+// 1) 브라우저/Node 모두 지원 시 crypto.randomUUID 우선
+// 2) 미지원 환경은 crypto.getRandomValues + RFC4122 포맷
+// 3) 최후 fallback: 시간 + 증가 카운터 기반 (테스트/희귀 환경)
+let __fallbackCounter = 0;
+function __uuidv4(): string {
+  // @ts-ignore
+  const g: any = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : global);
+  try {
+    if (g.crypto?.randomUUID) return g.crypto.randomUUID();
+  } catch {}
+  try {
+    if (g.crypto?.getRandomValues) {
+      const buf = new Uint8Array(16);
+      g.crypto.getRandomValues(buf);
+      // RFC4122 variant 처리
+      buf[6] = (buf[6] & 0x0f) | 0x40; // version 4
+      buf[8] = (buf[8] & 0x3f) | 0x80; // variant
+      const bth: string[] = [];
+      for (let i = 0; i < 256; i++) bth[i] = (i + 0x100).toString(16).substring(1);
+      const id = (
+        bth[buf[0]] + bth[buf[1]] + bth[buf[2]] + bth[buf[3]] + '-' +
+        bth[buf[4]] + bth[buf[5]] + '-' +
+        bth[buf[6]] + bth[buf[7]] + '-' +
+        bth[buf[8]] + bth[buf[9]] + '-' +
+        bth[buf[10]] + bth[buf[11]] + bth[buf[12]] + bth[buf[13]] + bth[buf[14]] + bth[buf[15]]
+      );
+      return id;
+    }
+  } catch {}
+  // 초저품질 fallback (Math.random 사용 금지 규칙 → 시간 & 증가값 조합)
+  // 충돌 가능성 낮지만 멱등키 목적에 충분, 운영 환경에서는 crypto 경로 사용됨
+  __fallbackCounter = (__fallbackCounter + 1) & 0xffff;
+  const now = Date.now().toString(16);
+  const cnt = __fallbackCounter.toString(16).padStart(4, '0');
+  return `fallback-${now}-${cnt}`;
 }
 
 async function refreshOnce(): Promise<boolean> {

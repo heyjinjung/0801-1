@@ -182,14 +182,31 @@ export function RealtimeSyncProvider(props: { children?: React.ReactNode }) {
   return React.createElement(React.Fragment, null, props.children ?? null);
 }
 
-// 간단 UUIDv4 (라이브러리 무의존)
-function uuidv4() {
-  // eslint-disable-next-line no-bitwise
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0,
-      v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+// 간단 UUIDv4 (crypto 기반, Math.random 제거)
+function uuidv4(): string {
+  // @ts-ignore
+  const g: any = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : global);
+  try { if (g.crypto?.randomUUID) return g.crypto.randomUUID(); } catch {}
+  try {
+    if (g.crypto?.getRandomValues) {
+      const buf = new Uint8Array(16);
+      g.crypto.getRandomValues(buf);
+      buf[6] = (buf[6] & 0x0f) | 0x40; // version
+      buf[8] = (buf[8] & 0x3f) | 0x80; // variant
+      const bth: string[] = [];
+      for (let i = 0; i < 256; i++) bth[i] = (i + 0x100).toString(16).substring(1);
+      return (
+        bth[buf[0]] + bth[buf[1]] + bth[buf[2]] + bth[buf[3]] + '-' +
+        bth[buf[4]] + bth[buf[5]] + '-' + bth[buf[6]] + bth[buf[7]] + '-' +
+        bth[buf[8]] + bth[buf[9]] + '-' +
+        bth[buf[10]] + bth[buf[11]] + bth[buf[12]] + bth[buf[13]] + bth[buf[14]] + bth[buf[15]]
+      );
+    }
+  } catch {}
+  // 초저품질 fallback – 시간+카운터(최후 수단, Math.random 금지)
+  const now = Date.now().toString(16);
+  const cnt = (uuidv4 as any).__c = (((uuidv4 as any).__c || 0) + 1) & 0xffff;
+  return `fallback-${now}-${cnt.toString(16).padStart(4, '0')}`;
 }
 
 type ReconcileOptions = { reconcile?: boolean };
