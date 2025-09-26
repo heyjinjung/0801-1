@@ -1,4 +1,7 @@
 'use client';
+// Hydration 안정화: 대시보드 배경 포인트는 기존 렌더마다 Math.random() 호출 → SSR/CSR 불일치 + 잦은 재마운트
+// → 초기 빈 state + 클라이언트 useEffect에서 1회만 생성하여 결정성 보장 (서버 출력 = 빈, 클라이언트에서만 애니메이션)
+// → 필요 시 lib/particles 사용해 seed 기반 SSR 도입 가능
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -107,16 +110,16 @@ export function HomeDashboard({
   const [attendanceDays, setAttendanceDays] = useState(null as string[] | null);
   // 매 렌더마다 Math.random() 호출 → 1초마다 interval 재렌더 시 수십개의 motion div 재마운트 → passive effect stack 증가
   // 1회만 좌표를 생성하여 렌더 루프/마운트 폭증을 방지
-  const [backgroundPoints] = useState(() => {
-    if (typeof window === 'undefined')
-      return [] as { id: number; x: number; y: number; delay: number }[];
-    return Array.from({ length: 20 }).map((_, i) => ({
-      id: i,
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
-      delay: i * 0.3,
-    }));
-  });
+    const [backgroundPoints, setBackgroundPoints] = useState<{x:number,y:number,size:number,opacity:number}[]>([]);
+    useEffect(() => {
+      const pts = Array.from({ length: isMobile ? 20 : 40 }).map(() => ({
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * (isMobile ? 1.5 : 2.5) + 0.5,
+        opacity: Math.random() * 0.4 + 0.1,
+      }));
+      setBackgroundPoints(pts);
+    }, [isMobile]);
 
   // streak state 동등성 비교 후 변경시에만 set → 동일 데이터 반복 set으로 인한 불필요 재렌더 방지
   interface StreakState {
@@ -435,21 +438,27 @@ export function HomeDashboard({
           BUILD: {BUILD_ID}
         </div>
       )}
-      {/* Animated Background */}
+      {/* Animated Background (SSR 결정성 확보: 초기 빈 → 클라이언트 생성) */}
       <div className="absolute inset-0">
-        {backgroundPoints.map((p: { id: number; x: number; y: number; delay: number }) => (
+        {backgroundPoints.map((p, i) => (
           <motion.div
-            key={p.id}
-            initial={{ opacity: 0, x: p.x, y: p.y }}
-            animate={{ opacity: [0, 0.2, 0], scale: [0, 1.2, 0], rotate: 360 }}
+            key={i}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: [0, p.opacity, 0], scale: [0, 1, 0], rotate: 360 }}
             transition={{
-              duration: 10,
+              duration: 12,
               repeat: Infinity,
-              delay: p.delay,
+              delay: i * 0.4,
               ease: 'easeInOut',
               type: 'tween',
             }}
-            className="absolute w-1 h-1 bg-primary rounded-full"
+            className="absolute rounded-full bg-primary/70"
+            style={{
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              width: `${p.size * 3}px`,
+              height: `${p.size * 3}px`,
+            }}
           />
         ))}
       </div>

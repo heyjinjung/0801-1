@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { apiLogTry, apiLogSuccess, apiLogFail } from '../utils/apiLogger';
 import { 
   Shield, 
@@ -106,46 +107,13 @@ export function AdminLoginScreen({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-background to-error/20 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Enhanced Security Background */}
-      <div className="absolute inset-0">
-        {/* Warning Grid Pattern */}
-        <div 
-          className="absolute inset-0 opacity-5"
-          style={{
-            backgroundImage: `
-              linear-gradient(45deg, transparent 40%, rgba(255, 51, 102, 0.1) 50%, transparent 60%),
-              linear-gradient(-45deg, transparent 40%, rgba(255, 51, 102, 0.1) 50%, transparent 60%)
-            `,
-            backgroundSize: '20px 20px'
-          }}
-        />
-        
-        {/* Floating Security Elements */}
-        {[...Array(8)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ 
-              opacity: 0,
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight
-            }}
-            animate={{ 
-              opacity: [0, 0.3, 0],
-              scale: [0, 1, 0],
-              rotate: [0, 180, 360]
-            }}
-            transition={{
-              duration: 6,
-              repeat: Infinity,
-              delay: i * 0.7,
-              ease: "easeInOut"
-            }}
-            className="absolute"
-          >
-            <Shield className="w-4 h-4 text-error" />
-          </motion.div>
-        ))}
-      </div>
+      {/* Grid Pattern (결정적, CSS 고정) */}
+      <div className="absolute inset-0 opacity-5" style={{
+        backgroundImage: `linear-gradient(45deg, transparent 40%, rgba(255, 51, 102, 0.1) 50%, transparent 60%),linear-gradient(-45deg, transparent 40%, rgba(255, 51, 102, 0.1) 50%, transparent 60%)`,
+        backgroundSize: '20px 20px'
+      }} />
+      {/* ParticleField: 보안 테마 아이콘 파티클을 클라이언트 전용으로 렌더 */}
+      {dynamic(() => import('./ParticleField').then(m => m.ParticleField), { ssr: false })({ variant: 'admin', count: 12 })}
 
       {/* Security Warning Banner */}
       <motion.div

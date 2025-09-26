@@ -1,4 +1,7 @@
 'use client';
+// Hydration 안정화: 기존 SSR 시 Math.random()/window 기반 파티클 생성으로 서버/클라이언트 DOM 불일치 발생
+// → 초기 SSR에서는 파티클을 렌더하지 않고(useState 빈 배열) 클라이언트 마운트 후 useEffect에서만 생성
+// → 추후 필요 시 lib/particles 의 deterministic seed 기반으로 SSR 복구 가능
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -122,13 +125,18 @@ function LoadingScreenComponent({
 
   // ⭐ 애니메이션 효과 설정 (useMemo 대신 일반 변수로 전환)
   const particleCount = isMobile ? 10 : 20;
-  const particles = Array.from({ length: particleCount }).map((_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 4 + 1,
-    duration: Math.random() * 20 + 10,
-  }));
+  // SSR 결정성: 초기엔 빈 배열, 클라이언트 마운트 후 생성
+  const [particles, setParticles] = useState<{id:number,x:number,y:number,size:number,duration:number}[]>([]);
+  useEffect(() => {
+    const list = Array.from({ length: particleCount }).map((_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 4 + 1,
+      duration: Math.random() * 20 + 10,
+    }));
+    setParticles(list);
+  }, [particleCount]);
 
   // 컴포넌트 렌더링
   return (
@@ -143,38 +151,29 @@ function LoadingScreenComponent({
         >
           {/* Animated Background Elements */}
           <div className="absolute inset-0 overflow-hidden">
-            {[...Array(particleCount)].map((_, i) => {
-              // 클라이언트에서만 랜덤값 사용, 서버에서는 고정된 시드값 사용
-              // useClientOnlyValue를 직접 사용하는 대신 useMemo로 계산
-              const randomPos = {
-                x: Math.random() * (windowDimensions.width + 100) - 50,
-                y: Math.random() * (windowDimensions.height + 100) - 50,
-              };
-
-              return (
-                <motion.div
-                  key={i}
-                  initial={{
-                    opacity: 0,
-                    scale: 0,
-                    x: randomPos.x,
-                    y: randomPos.y,
-                  }}
-                  animate={{
-                    opacity: [0, 1, 0],
-                    scale: [0, 1, 0],
-                    rotate: isMobile ? 0 : 360, // 모바일에서는 회전 애니메이션 비활성화
-                  }}
-                  transition={{
-                    duration: isMobile ? 4 : 3, // 모바일에서는 애니메이션 지속시간 증가
-                    repeat: Infinity,
-                    delay: i * (isMobile ? 0.2 : 0.1), // 모바일에서는 딜레이 더 주기
-                    ease: 'easeInOut',
-                  }}
-                  className={`absolute rounded-full ${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-primary`}
-                />
-              );
-            })}
+            {particles.map((p, i) => (
+              <motion.div
+                key={p.id}
+                initial={{
+                  opacity: 0,
+                  scale: 0,
+                  x: `${p.x}%`,
+                  y: `${p.y}%`,
+                }}
+                animate={{
+                  opacity: [0, 1, 0],
+                  scale: [0, 1, 0],
+                  rotate: isMobile ? 0 : 360,
+                }}
+                transition={{
+                  duration: isMobile ? 4 : 3,
+                  repeat: Infinity,
+                  delay: i * (isMobile ? 0.2 : 0.1),
+                  ease: 'easeInOut',
+                }}
+                className={`absolute rounded-full ${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-primary`}
+              />
+            ))}
           </div>
 
           {/* Main Loading Content */}

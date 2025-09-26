@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { apiLogTry, apiLogSuccess, apiLogFail } from '../utils/apiLogger';
 import { 
   User, 
@@ -78,31 +79,9 @@ export function LoginScreen({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-black to-primary/10 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0">
-        {[...Array(15)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{
-              opacity: 0,
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
-            }}
-            animate={{
-              opacity: [0, 0.3, 0],
-              scale: [0, 1, 0],
-              rotate: 360,
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              delay: i * 0.5,
-              ease: 'easeInOut',
-            }}
-            className="absolute w-1 h-1 bg-primary rounded-full"
-          />
-        ))}
-      </div>
+  {/* ParticleField: SSR 비결정 랜덤 제거, 클라이언트 전용 */}
+  {/** dynamic import 로 SSR 시 제외되어 hydration mismatch 방지 */}
+  {dynamic(() => import('./ParticleField').then(m => m.ParticleField), { ssr: false })({ variant: 'login', count: 18 })}
 
       {/* Main Login Card */}
       <motion.div
